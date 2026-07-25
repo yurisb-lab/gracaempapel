@@ -64,6 +64,7 @@
     if(window.renderFilterBar)window.renderFilterBar();
     if(window.populateCatSelect)window.populateCatSelect();
     if(window.renderCatManagerList)window.renderCatManagerList();
+    if(window.renderCatHome)window.renderCatHome();
   });
 
   window._firebaseReady=true;
@@ -95,7 +96,8 @@ body.loaded{filter:blur(0px);opacity:1;}
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 html{scroll-behavior:smooth;}
-body{font-family:'Cormorant Garamond',serif;background:var(--cream);color:var(--ink);min-height:100vh;overflow-x:hidden;}
+body{font-family:'Cormorant Garamond',serif;background-color:var(--cream);background-image:radial-gradient(640px circle at 6% -4%, rgba(122,155,181,0.38), transparent 62%),radial-gradient(600px circle at 100% 28%, rgba(212,120,138,0.32), transparent 62%),radial-gradient(560px circle at 55% 92%, rgba(196,162,101,0.30), transparent 62%);background-attachment:fixed;background-repeat:no-repeat;color:var(--ink);min-height:100vh;overflow-x:hidden;}
+@media(max-width:768px){body{background-attachment:scroll;}}
 
 /* ══ HEADER ══ */
 header{
@@ -314,6 +316,21 @@ header{
 .pagination{display:flex;justify-content:center;gap:0.38rem;margin-top:1.6rem;flex-wrap:wrap;}
 .page-btn{background:var(--warm);border:1.5px solid var(--border);color:var(--ink-soft);width:32px;height:32px;border-radius:50%;font-family:'Cormorant Garamond',serif;font-size:0.84rem;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;}
 .page-btn:hover,.page-btn.on{background:var(--blue);border-color:var(--blue);color:white;}
+
+/* ══ CATEGORY HOME ══ */
+.cat-home-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;}
+@media(min-width:640px){.cat-home-grid{grid-template-columns:repeat(3,1fr);}}
+@media(min-width:960px){.cat-home-grid{grid-template-columns:repeat(4,1fr);}}
+.cat-card{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:1/1;cursor:pointer;box-shadow:var(--shadow);transition:transform 0.3s,box-shadow 0.3s;}
+.cat-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-hover);}
+.cat-card img{width:100%;height:100%;object-fit:cover;transition:transform 0.4s;display:block;}
+.cat-card:hover img{transform:scale(1.06);}
+.cat-card .cat-ph{width:100%;height:100%;background:linear-gradient(135deg,var(--blue-pale),var(--pink-pale));display:flex;align-items:center;justify-content:center;font-size:2.4rem;}
+.cat-card-label{position:absolute;inset:auto 0 0 0;padding:1.6rem 0.8rem 0.7rem;background:linear-gradient(transparent,rgba(20,16,14,0.72));color:white;text-align:center;}
+.cat-card-name{font-family:'Cormorant Garamond',serif;font-size:1.05rem;font-weight:600;}
+.cat-card-count{font-size:0.68rem;opacity:0.85;text-transform:uppercase;margin-top:0.15rem;}
+.back-btn{background:none;border:1.5px solid var(--border);color:var(--ink-soft);padding:0.32rem 0.85rem;border-radius:2rem;font-family:'Cormorant Garamond',serif;font-size:0.85rem;cursor:pointer;margin-right:0.6rem;}
+.back-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-pale);}
 
 /* ══ GALLERY ══ */
 .gallery-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0.75rem;}
@@ -573,10 +590,17 @@ footer{
   <div class="hero-sub">✦ Criando com Carinho para Tocar Corações ✦</div>
 </section>
 
+<!-- CATEGORIAS -->
+<section class="section" id="sec-categorias">
+  <div class="sec-head"><span class="sec-title">Explore por Categoria</span></div>
+  <div class="cat-home-grid" id="catHomeGrid"></div>
+</section>
+
 <!-- PRODUTOS -->
-<section class="section" id="sec-produtos">
+<section class="section" id="sec-produtos" style="display:none;">
   <div class="sec-head">
-    <span class="sec-title">Nossos Produtos</span>
+    <button class="back-btn" onclick="goHome()">← Categorias</button>
+    <span class="sec-title" id="catPageTitle">Produtos</span>
     <span class="sec-count" id="prodCount"></span>
   </div>
   <div id="productsGrid"><div class="loading"><div class="spinner"></div><p>Carregando...</p></div></div>
@@ -791,7 +815,7 @@ footer{
 <script>
 // ── STATE ──
 const ADMIN_PASS='graciosa', NEW_DAYS=15;
-let isAdmin=false, searchQ='', activeFilter='all', activeSubcat='all', curPage=1;
+let isAdmin=false, searchQ='', activeFilter='all', activeSubcat='all', curPage=1, currentView='home';
 const PER_PAGE=20;
 let cart=JSON.parse(localStorage.getItem('graca_cart')||'[]');
 let favs=JSON.parse(localStorage.getItem('graca_favs')||'[]');
@@ -811,13 +835,17 @@ function updCount(){const t=cart.reduce((s,i)=>s+i.qty,0);document.getElementByI
 updCount();
 function waLink(p){const n=window._waNumber||'5511999999999';return `https://wa.me/${n}?text=${encodeURIComponent(`Olá! Tenho interesse no produto: *${p.name}*\nPreço: R$ ${fmt(p.price)}\n\nPoderia me dar mais informações?`)}`;}
 function floatWA(){const n=window._waNumber||'5511999999999';window.open(`https://wa.me/${n}?text=${encodeURIComponent('Olá! Gostaria de saber mais sobre os produtos da Graça em Papel.')}`, '_blank');}
-function scrollToTop(){window.scrollTo({top:0,behavior:'smooth'});}
+function scrollToTop(){goHome();}
 function openInstagram(){const ig=window._instagram||localStorage.getItem('graca_ig')||'';if(ig)window.open(ig,'_blank');else alert('Link do Instagram não configurado. Acesse o painel Admin > Config.');}
 
 // ── SEARCH ──
 function toggleSearch(){const b=document.getElementById('searchBar');b.classList.toggle('open');if(b.classList.contains('open'))setTimeout(()=>document.getElementById('searchInput').focus(),50);else{document.getElementById('searchInput').value='';onSearch('');}}
 function closeSearch(){document.getElementById('searchBar').classList.remove('open');document.getElementById('searchInput').value='';onSearch('');}
-function onSearch(v){searchQ=v.trim();curPage=1;renderProducts();}
+function onSearch(v){
+  searchQ=v.trim();curPage=1;
+  if(searchQ&&currentView==='home')goToCategory('all');
+  else renderProducts();
+}
 
 // ── ADMIN ──
 function adminClick(){if(isAdmin)logout();else openOv('loginOv');}
@@ -860,6 +888,8 @@ async function saveFullConfig(){
 
 // ── PRODUCTS ──
 window.renderProducts=function renderProducts(){
+  renderCatHome();
+  if(currentView!=='category')return;
   const prods=window._products||[];
   const grid=document.getElementById('productsGrid');
   // Build category data from products + stored categories
@@ -913,6 +943,46 @@ window.renderProducts=function renderProducts(){
 function setFilter(f){activeFilter=f;activeSubcat='all';curPage=1;renderFilterBar();renderProducts();}
 function setSubcat(s){activeSubcat=s;curPage=1;renderFilterBar();renderProducts();}
 function goPage(n){curPage=n;renderProducts();document.getElementById('sec-produtos').scrollIntoView({behavior:'smooth'});}
+
+// ── CATEGORY HOME ──
+function renderCatHome(){
+  const grid=document.getElementById('catHomeGrid');
+  if(!grid)return;
+  const cats=window._categories||[];
+  const prods=(window._products||[]).filter(p=>p.active!==false);
+  let h=`<div class="cat-card" onclick="goToCategory('all')">
+    <div class="cat-ph" style="background:linear-gradient(135deg,var(--gold-pale),var(--pink-pale));">🌸</div>
+    <div class="cat-card-label"><div class="cat-card-name">Ver Todos</div><div class="cat-card-count">${prods.length} produto${prods.length!==1?'s':''}</div></div>
+  </div>`;
+  h+=cats.map(c=>{
+    const catProds=prods.filter(p=>p.category===c.name);
+    const img=c.image||(catProds[0]&&(catProds[0].images&&catProds[0].images[0]||catProds[0].image))||'';
+    return `<div class="cat-card" onclick="goToCategory('${c.name.replace(/'/g,"\\'")}')">
+      ${img?`<img src="${img}" alt="${c.name}" loading="lazy">`:'<div class="cat-ph">🎀</div>'}
+      <div class="cat-card-label"><div class="cat-card-name">${c.name}</div><div class="cat-card-count">${catProds.length} produto${catProds.length!==1?'s':''}</div></div>
+    </div>`;
+  }).join('');
+  grid.innerHTML=h;
+}
+
+function goToCategory(name){
+  currentView='category';
+  activeFilter=name;activeSubcat='all';curPage=1;
+  document.getElementById('sec-categorias').style.display='none';
+  document.getElementById('sec-produtos').style.display='';
+  document.getElementById('catPageTitle').textContent=(name==='all')?'Todos os Produtos':name;
+  renderProducts();
+  document.getElementById('sec-produtos').scrollIntoView({behavior:'smooth'});
+}
+
+function goHome(){
+  currentView='home';activeFilter='all';activeSubcat='all';searchQ='';
+  const si=document.getElementById('searchInput');if(si)si.value='';
+  document.getElementById('sec-produtos').style.display='none';
+  document.getElementById('sec-categorias').style.display='';
+  renderCatHome();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
 
 // ── FAVS ──
 function togFav(id){if(isFav(id))favs=favs.filter(f=>f!==id);else favs.push(id);saveFavs();renderProducts();renderFavs();}
@@ -1653,7 +1723,7 @@ async function seedFAQs(){
 }
 setTimeout(seedFAQs,3500);
 setTimeout(()=>{
-  if(window.renderProducts)renderProducts();
+  goHome();
   markSplashDone();
 },1200);
 </script>
@@ -1852,23 +1922,22 @@ function renderDrawer(){
 }
 
 function drawerSelectAll(){
-  activeFilter='all';activeSubcat='all';curPage=1;
-  renderProducts();
+  goToCategory('all');
   closeDrawer();
 }
 function drawerToggleCat(name){
-  if(activeFilter===name){
+  if(activeFilter===name && currentView==='category'){
     // already selected, just toggle open/close subcategory list
     const el=document.getElementById('dcr-'+encodeURIComponent(name));
     if(el) el.classList.toggle('open');
   } else {
-    activeFilter=name;activeSubcat='all';curPage=1;
-    renderProducts();
+    goToCategory(name);
     closeDrawer();
   }
 }
 function drawerSelectSubcat(cat,sub){
-  activeFilter=cat;activeSubcat=sub;curPage=1;
+  goToCategory(cat);
+  activeSubcat=sub;curPage=1;
   renderProducts();
   closeDrawer();
 }
