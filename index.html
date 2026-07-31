@@ -625,29 +625,31 @@ footer{
   <div id="productsGrid"><div class="loading"><div class="spinner"></div><p>Carregando...</p></div></div>
 </section>
 
-<hr class="divider">
+<div id="postCategoryBlocks" style="display:none;">
+  <hr class="divider">
 
-<!-- NOSSOS CLIENTES -->
-<div class="sec-banner">
-  <div class="sec-banner-title">Nossos Clientes</div>
-  <div class="sec-banner-sub">Produtos reais, clientes reais ✦ Nossa maior inspiração</div>
-</div>
-<section class="section" id="sec-galeria">
-  <div id="galleryGrid"></div>
-</section>
-
-<hr class="divider">
-
-<!-- FAVORITOS -->
-<div class="sec-banner">
-  <div class="sec-banner-title">Meus Favoritos</div>
-  <div class="sec-banner-sub">Produtos que você guardou com carinho ❤</div>
-</div>
-<section class="section" id="sec-favs">
-  <div class="grid" id="favsGrid">
-    <div class="favs-empty">Toque no ❤ de um produto para salvá-lo aqui.</div>
+  <!-- NOSSOS CLIENTES -->
+  <div class="sec-banner">
+    <div class="sec-banner-title">Nossos Clientes</div>
+    <div class="sec-banner-sub">Produtos reais, clientes reais ✦ Nossa maior inspiração</div>
   </div>
-</section>
+  <section class="section" id="sec-galeria">
+    <div id="galleryGrid"></div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- FAVORITOS -->
+  <div class="sec-banner">
+    <div class="sec-banner-title">Meus Favoritos</div>
+    <div class="sec-banner-sub">Produtos que você guardou com carinho ❤</div>
+  </div>
+  <section class="section" id="sec-favs">
+    <div class="grid" id="favsGrid">
+      <div class="favs-empty">Toque no ❤ de um produto para salvá-lo aqui.</div>
+    </div>
+  </section>
+</div>
 
 <hr class="divider">
 
@@ -989,6 +991,7 @@ function goToCategory(name){
   activeFilter=name;activeSubcat='all';curPage=1;
   document.getElementById('sec-categorias').style.display='none';
   document.getElementById('sec-produtos').style.display='';
+  document.getElementById('postCategoryBlocks').style.display='';
   document.getElementById('catPageTitle').textContent=(name==='all')?'Todos os Produtos':name;
   renderProducts();
   document.getElementById('sec-produtos').scrollIntoView({behavior:'smooth'});
@@ -998,6 +1001,7 @@ function goHome(){
   currentView='home';activeFilter='all';activeSubcat='all';searchQ='';
   const si=document.getElementById('searchInput');if(si)si.value='';
   document.getElementById('sec-produtos').style.display='none';
+  document.getElementById('postCategoryBlocks').style.display='none';
   document.getElementById('sec-categorias').style.display='';
   renderCatHome();
   window.scrollTo({top:0,behavior:'smooth'});
