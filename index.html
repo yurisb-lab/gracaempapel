@@ -678,6 +678,19 @@ window._sobre=localStorage.getItem('graca_sobre')||'';
 const WA_SVG=`<svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`;
 
 function fmt(v){return parseFloat(v).toLocaleString('pt-BR',{minimumFractionDigits:2});}
+
+/* ── Escape de texto vindo do Firestore ─────────────────────────────
+   Nomes de categoria/produto entram em atributos HTML e dentro de strings
+   JavaScript nos onclick. Sem escapar, um nome com aspas — por exemplo
+   Bottons "Premium" — fecha o atributo antes da hora e o clique quebra.  */
+function escAttr(v){
+  return String(v??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+// Para valores dentro de uma string JS ('...') num atributo onclick
+function escArg(v){
+  return escAttr(String(v??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"));
+}
 function isNew(p){return p.createdAt&&(Date.now()-p.createdAt<NEW_DAYS*864e5);}
 function isFav(id){return favs.includes(id);}
 function saveCart(){localStorage.setItem('graca_cart',JSON.stringify(cart));updCount();}
@@ -720,21 +733,21 @@ window.renderProducts=function renderProducts(){
   let g=`<div class="grid">`;
   page.forEach(p=>{
     const imgs=p.images&&p.images.length?p.images:(p.image?[p.image]:[]);
-    const img=imgs.length?`<img class="card-img" src="${imgs[0]}" alt="${p.name}" loading="lazy" onerror="this.style.display='none'">`:`<div class="card-ph">🎀</div>`;
+    const img=imgs.length?`<img class="card-img" src="${escAttr(imgs[0])}" alt="${escAttr(p.name)}" loading="lazy" onerror="this.style.display='none'">`:`<div class="card-ph">🎀</div>`;
     const imgCount=imgs.length>1?`<div class="card-img-count">📷 ${imgs.length}</div>`:'';
-    g+=`<div class="card" onclick="openDet('${p.id}')">
+    g+=`<div class="card" onclick="openDet('${escArg(p.id)}')">
       <div class="card-img-wrap">
         ${isNew(p)?'<div class="badge-new">Novo</div>':''}
-        <button class="fav-btn${isFav(p.id)?' active':''}" onclick="event.stopPropagation();togFav('${p.id}')">${isFav(p.id)?'❤️':'🤍'}</button>
+        <button class="fav-btn${isFav(p.id)?' active':''}" onclick="event.stopPropagation();togFav('${escArg(p.id)}')">${isFav(p.id)?'❤️':'🤍'}</button>
         ${img}${imgCount}
       </div>
       <div class="card-body">
-        ${p.category?`<div class="card-cat">${p.category}${p.subcategory?' · '+p.subcategory:''}</div>`:''}
-        <div class="card-name">${p.name}</div>
-        ${p.description?`<div class="card-desc">${p.description}</div>`:''}
+        ${p.category?`<div class="card-cat">${escAttr(p.category)}${p.subcategory?' · '+escAttr(p.subcategory):''}</div>`:''}
+        <div class="card-name">${escAttr(p.name)}</div>
+        ${p.description?`<div class="card-desc">${escAttr(p.description)}</div>`:''}
         <div class="card-footer">
           <div><div class="card-price-lbl">a partir de</div><div class="card-price">R$ ${fmt(p.price)}</div></div>
-          <a href="${waLink(p)}" target="_blank" class="btn-wa-sm" onclick="event.stopPropagation()">${WA_SVG} Comprar</a>
+          <a href="${escAttr(waLink(p))}" target="_blank" class="btn-wa-sm" onclick="event.stopPropagation()">${WA_SVG} Comprar</a>
         </div>
       </div>
     </div>`;
@@ -761,9 +774,9 @@ function renderCatHome(){
   h+=cats.map(c=>{
     const catProds=prods.filter(p=>p.category===c.name);
     const img=c.image||(catProds[0]&&(catProds[0].images&&catProds[0].images[0]||catProds[0].image))||'';
-    return `<div class="cat-card" onclick="goToCategory('${c.name.replace(/'/g,"\\'")}')">
-      ${img?`<img src="${img}" alt="${c.name}" loading="lazy">`:'<div class="cat-ph">🎀</div>'}
-      <div class="cat-card-label"><div class="cat-card-name">${c.name}</div><div class="cat-card-count">${catProds.length} produto${catProds.length!==1?'s':''}</div></div>
+    return `<div class="cat-card" onclick="goToCategory('${escArg(c.name)}')">
+      ${img?`<img src="${escAttr(img)}" alt="${escAttr(c.name)}" loading="lazy">`:'<div class="cat-ph">🎀</div>'}
+      <div class="cat-card-label"><div class="cat-card-name">${escAttr(c.name)}</div><div class="cat-card-count">${catProds.length} produto${catProds.length!==1?'s':''}</div></div>
     </div>`;
   }).join('');
   grid.innerHTML=h;
@@ -795,13 +808,13 @@ window.renderFavs=function renderFavs(){
   const fp=(window._products||[]).filter(p=>isFav(p.id));
   if(fp.length===0){grid.innerHTML='<div class="favs-empty">Toque no ❤ de um produto para salvá-lo aqui.</div>';return;}
   grid.innerHTML=fp.map(p=>{
-    const img2=p.images&&p.images.length?`<img class="card-img" src="${p.images[0]}" alt="${p.name}">`:p.image?`<img class="card-img" src="${p.image}" alt="${p.name}">`:`<div class="card-ph">🎀</div>`;
-    return `<div class="card" onclick="openDet('${p.id}')">
-      <div class="card-img-wrap"><button class="fav-btn active" onclick="event.stopPropagation();togFav('${p.id}')">❤️</button>${img2}</div>
+    const img2=p.images&&p.images.length?`<img class="card-img" src="${escAttr(p.images[0])}" alt="${escAttr(p.name)}">`:p.image?`<img class="card-img" src="${escAttr(p.image)}" alt="${escAttr(p.name)}">`:`<div class="card-ph">🎀</div>`;
+    return `<div class="card" onclick="openDet('${escArg(p.id)}')">
+      <div class="card-img-wrap"><button class="fav-btn active" onclick="event.stopPropagation();togFav('${escArg(p.id)}')">❤️</button>${img2}</div>
       <div class="card-body">
-        ${p.category?`<div class="card-cat">${p.category}${p.subcategory?' · '+p.subcategory:''}</div>`:''}
-        <div class="card-name">${p.name}</div>
-        <div class="card-footer"><div class="card-price">R$ ${fmt(p.price)}</div><a href="${waLink(p)}" target="_blank" class="btn-wa-sm" onclick="event.stopPropagation()">${WA_SVG} Comprar</a></div>
+        ${p.category?`<div class="card-cat">${escAttr(p.category)}${p.subcategory?' · '+escAttr(p.subcategory):''}</div>`:''}
+        <div class="card-name">${escAttr(p.name)}</div>
+        <div class="card-footer"><div class="card-price">R$ ${fmt(p.price)}</div><a href="${escAttr(waLink(p))}" target="_blank" class="btn-wa-sm" onclick="event.stopPropagation()">${WA_SVG} Comprar</a></div>
       </div>
     </div>`;
   }).join('');
@@ -813,9 +826,9 @@ window.renderGallery=function renderGallery(){
   const imgs=window._gallery||[];
   if(imgs.length===0){grid.innerHTML='<p style="text-align:center;color:var(--ink-soft);padding:1.5rem;font-size:0.88rem">Em breve fotos dos nossos clientes!</p>';return;}
   let h=`<div class="gallery-grid">`;
-  h+=imgs.map(i=>`<div class="gal-item" onclick="openLb('${i.image}')">
-    <img src="${i.image}" alt="${i.caption||''}" loading="lazy">
-    ${i.caption?`<div class="gal-cap">${i.caption}</div>`:''}
+  h+=imgs.map(i=>`<div class="gal-item" onclick="openLb('${escArg(i.image)}')">
+    <img src="${escAttr(i.image)}" alt="${escAttr(i.caption)}" loading="lazy">
+    ${i.caption?`<div class="gal-cap">${escAttr(i.caption)}</div>`:''}
   </div>`).join('');
   h+='</div>';
   grid.innerHTML=h;
@@ -827,9 +840,9 @@ function openFaqModalView(){
   const body=document.getElementById('faqViewBody');
   if(faqs.length===0){body.innerHTML='<p style="color:var(--ink-soft);text-align:center;padding:1.5rem">Nenhuma pergunta cadastrada.</p>';openOv('faqViewOv');return;}
   body.innerHTML=faqs.map(f=>`
-    <div class="faq-item" id="fv-${f.id}">
-      <div class="faq-q" onclick="togFaq('fv-${f.id}')"><span>${f.question}</span><span class="faq-chevron">▾</span></div>
-      <div class="faq-a">${f.answer}</div>
+    <div class="faq-item" id="fv-${escAttr(f.id)}">
+      <div class="faq-q" onclick="togFaq('fv-${escArg(f.id)}')"><span>${escAttr(f.question)}</span><span class="faq-chevron">▾</span></div>
+      <div class="faq-a">${escAttr(f.answer)}</div>
     </div>`).join('');
   openOv('faqViewOv');
 }
@@ -851,9 +864,9 @@ function openDet(id){
   if(imgs.length===0){
     h+=`<div class="det-ph">🎀</div>`;
   } else if(imgs.length===1){
-    h+=`<div class="det-carousel"><div class="det-carousel-track"><div class="det-carousel-slide"><img src="${imgs[0]}" alt="${p.name}" onerror="this.style.display='none'"></div></div></div>`;
+    h+=`<div class="det-carousel"><div class="det-carousel-track"><div class="det-carousel-slide"><img src="${escAttr(imgs[0])}" alt="${escAttr(p.name)}" onerror="this.style.display='none'"></div></div></div>`;
   } else {
-    const slides=imgs.map(src=>`<div class="det-carousel-slide"><img src="${src}" alt="${p.name}" onerror="this.style.display='none'"></div>`).join('');
+    const slides=imgs.map(src=>`<div class="det-carousel-slide"><img src="${escAttr(src)}" alt="${escAttr(p.name)}" onerror="this.style.display='none'"></div>`).join('');
     const dots=imgs.map((_,i)=>`<button class="car-dot${i===0?' on':''}" onclick="carGo('detCar',${i})"></button>`).join('');
     h+=`<div class="det-carousel" id="detCar" data-idx="0">
       <div class="det-carousel-track" id="detCarTrack">${slides}</div>
@@ -862,20 +875,20 @@ function openDet(id){
       <div class="car-dots" id="detCarDots">${dots}</div>
     </div>`;
   }
-  if(p.category)h+=`<div class="det-cat">${p.category}${p.subcategory?' <span style="opacity:0.6">›</span> '+p.subcategory:''}</div>`;
-  h+=`<div class="det-name">${p.name}</div>`;
-  if(p.description)h+=`<div class="det-desc">${p.description}</div>`;
+  if(p.category)h+=`<div class="det-cat">${escAttr(p.category)}${p.subcategory?' <span style="opacity:0.6">›</span> '+escAttr(p.subcategory):''}</div>`;
+  h+=`<div class="det-name">${escAttr(p.name)}</div>`;
+  if(p.description)h+=`<div class="det-desc">${escAttr(p.description)}</div>`;
   h+=`<div class="det-price">R$ ${fmt(p.price)}</div>`;
   h+=`<div class="det-btns">
-    <a href="${waLink(p)}" target="_blank" class="btn-wa-sm" style="padding:0.58rem 1rem;font-size:0.83rem">${WA_SVG} Comprar via WhatsApp</a>
-    <button class="btn-add-cart" onclick="addCart('${p.id}');closeOv('detOv')">+ Carrinho</button>
-    <button class="btn-share" onclick="shareProd('${p.id}')">↗ Compartilhar</button>
+    <a href="${escAttr(waLink(p))}" target="_blank" class="btn-wa-sm" style="padding:0.58rem 1rem;font-size:0.83rem">${WA_SVG} Comprar via WhatsApp</a>
+    <button class="btn-add-cart" onclick="addCart('${escArg(p.id)}');closeOv('detOv')">+ Carrinho</button>
+    <button class="btn-share" onclick="shareProd('${escArg(p.id)}')">↗ Compartilhar</button>
   </div>`;
   if(suggs.length>0){
     h+=`<div class="sugg-ttl">✦ Você também pode gostar</div><div class="sugg-grid">`;
-    suggs.forEach(s=>{const si=s.images&&s.images[0]||s.image||'';h+=`<div class="sugg-card" onclick="openDet('${s.id}')">
-      ${si?`<img src="${si}" alt="${s.name}">`:'<div class="sugg-ph">🎀</div>'}
-      <div class="sugg-info"><div class="sugg-name">${s.name}</div><div class="sugg-price">R$ ${fmt(s.price)}</div></div>
+    suggs.forEach(s=>{const si=s.images&&s.images[0]||s.image||'';h+=`<div class="sugg-card" onclick="openDet('${escArg(s.id)}')">
+      ${si?`<img src="${escAttr(si)}" alt="${escAttr(s.name)}">`:'<div class="sugg-ph">🎀</div>'}
+      <div class="sugg-info"><div class="sugg-name">${escAttr(s.name)}</div><div class="sugg-price">R$ ${fmt(s.price)}</div></div>
     </div>`;});
     h+='</div>';
   }
@@ -900,8 +913,8 @@ function renderCart(){
   let h='<ul class="cart-list">';
   cart.forEach((item,idx)=>{
     h+=`<li class="ci">
-      ${item.image?`<img src="${item.image}" alt="">`:'<div class="ci-ph">🎀</div>'}
-      <div class="ci-info"><div class="ci-name">${item.name}</div><div class="ci-price">R$ ${fmt(item.price)} un.</div></div>
+      ${item.image?`<img src="${escAttr(item.image)}" alt="">`:'<div class="ci-ph">🎀</div>'}
+      <div class="ci-info"><div class="ci-name">${escAttr(item.name)}</div><div class="ci-price">R$ ${fmt(item.price)} un.</div></div>
       <div class="ci-qty"><button onclick="chQty(${idx},-1)">−</button><span>${item.qty}</span><button onclick="chQty(${idx},1)">+</button></div>
       <button class="ci-rm" onclick="rmCart(${idx})">✕</button>
     </li>`;
@@ -1182,15 +1195,15 @@ function renderDrawer(){
     const isCatActive=activeFilter===cat.name;
     const isOpen=isCatActive;
     html+=`<div class="drawer-cat${isOpen?' open':''}" id="dcr-${encodeURIComponent(cat.name)}">
-      <button class="drawer-cat-btn${isCatActive?' active':''}" onclick="drawerToggleCat('${cat.name.replace(/'/g,"\\'")}')">
-        <span class="cat-label">${cat.name}</span>
+      <button class="drawer-cat-btn${isCatActive?' active':''}" onclick="drawerToggleCat('${escArg(cat.name)}')">
+        <span class="cat-label">${escAttr(cat.name)}</span>
         ${subs.length?`<span class="drawer-cat-chevron">▼</span>`:''}
       </button>`;
     if(subs.length){
       html+=`<div class="drawer-subcats">`;
       subs.forEach(s=>{
         const isSubActive=isCatActive&&activeSubcat===s;
-        html+=`<button class="drawer-subcat-btn${isSubActive?' active':''}" onclick="drawerSelectSubcat('${cat.name.replace(/'/g,"\\'")}','${s.replace(/'/g,"\\'")}')">↳ ${s}</button>`;
+        html+=`<button class="drawer-subcat-btn${isSubActive?' active':''}" onclick="drawerSelectSubcat('${escArg(cat.name)}','${escArg(s)}')">↳ ${escAttr(s)}</button>`;
       });
       html+=`</div>`;
     }
