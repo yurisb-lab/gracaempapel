@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Graça em Papel</title>
+<meta name="theme-color" content="#7A9BB5">
+<link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Parisienne&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -11,7 +15,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   // Vitrine somente-leitura: nada é escrito daqui.
   // Produtos, categorias, galeria, FAQ e contato são gerenciados no app Central da Graça.
-  import { getFirestore, collection, doc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getFirestore, collection, doc, onSnapshot, getDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   const app = initializeApp({
     apiKey:"AIzaSyBdoXn-ECybMDTL-DvRWr7m3ZCkHhGpJC8",
     authDomain:"tudo-pela-graca-loja.firebaseapp.com",
@@ -34,8 +38,11 @@
     }
   }).catch(()=>{});
 
-  // Products
-  onSnapshot(collection(db,"products"),(snap)=>{
+  // Produtos — só os ativos.
+  // Sem o filtro, todo cliente baixava o catálogo inteiro (inclusive o que
+  // está oculto) a cada visita e a cada alteração feita na Central. A Central
+  // sempre grava o campo `active`, e avisa se encontrar produto sem ele.
+  onSnapshot(query(collection(db,"products"), where("active","==",true)),(snap)=>{
     const p=[]; snap.forEach(d=>p.push({id:d.id,...d.data()}));
     p.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
     window._products=p;
@@ -775,8 +782,6 @@ window.renderProducts=function renderProducts(){
   if(total>1){pag='<div class="pagination">';for(let i=1;i<=total;i++)pag+=`<button class="page-btn${i===curPage?' on':''}" onclick="goPage(${i})">${i}</button>`;pag+='</div>';}
   grid.innerHTML=g+pag;
 };
-function setFilter(f){activeFilter=f;activeSubcat='all';curPage=1;renderFilterBar();renderProducts();}
-function setSubcat(s){activeSubcat=s;curPage=1;renderFilterBar();renderProducts();}
 function goPage(n){curPage=n;renderProducts();document.getElementById('sec-produtos').scrollIntoView({behavior:'smooth'});}
 
 // ── CATEGORY HOME ──
@@ -1000,17 +1005,6 @@ window._categories = []; // [{id, name, subcategories:[string]}]
 // renderFilterBar replaced by side drawer
 function renderFilterBar(){ /* no-op */ }
 
-// ── TOAST ──
-function showToast(msg, type='', duration=3500){
-  const t=document.getElementById('toast');
-  if(!t)return;
-  t.textContent=msg;
-  t.className='toast'+(type?' '+type:'');
-  void t.offsetWidth; // reflow
-  t.classList.add('show');
-  clearTimeout(t._timer);
-  t._timer=setTimeout(()=>t.classList.remove('show'),duration);
-}
 
 // ── CAROUSEL ──
 function carStep(carId,dir){
