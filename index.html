@@ -831,7 +831,7 @@ window.renderFavs=function renderFavs(){
   const fp=(window._products||[]).filter(p=>isFav(p.id));
   if(fp.length===0){grid.innerHTML='<div class="favs-empty">Toque no ❤ de um produto para salvá-lo aqui.</div>';return;}
   grid.innerHTML=fp.map(p=>{
-    const img2=p.images&&p.images.length?`<img class="card-img" src="${escAttr(cdnImg(p.images[0],500))}" alt="${escAttr(p.name)}">`:p.image?`<img class="card-img" src="${escAttr(cdnImg(p.image,500))}" alt="${escAttr(p.name)}">`:`<div class="card-ph">🎀</div>`;
+    const img2=p.images&&p.images.length?`<img class="card-img" src="${escAttr(cdnImg(p.images[0],500))}" alt="${escAttr(p.name)}" loading="lazy">`:p.image?`<img class="card-img" src="${escAttr(cdnImg(p.image,500))}" alt="${escAttr(p.name)}" loading="lazy">`:`<div class="card-ph">🎀</div>`;
     return `<div class="card" onclick="openDet('${escArg(p.id)}')">
       <div class="card-img-wrap"><button class="fav-btn active" onclick="event.stopPropagation();togFav('${escArg(p.id)}')">❤️</button>${img2}</div>
       <div class="card-body">
@@ -889,7 +889,7 @@ function openDet(id){
   } else if(imgs.length===1){
     h+=`<div class="det-carousel"><div class="det-carousel-track"><div class="det-carousel-slide"><img src="${escAttr(cdnImg(imgs[0],1000))}" alt="${escAttr(p.name)}" onerror="this.style.display='none'"></div></div></div>`;
   } else {
-    const slides=imgs.map(src=>`<div class="det-carousel-slide"><img src="${escAttr(cdnImg(src,1000))}" alt="${escAttr(p.name)}" onerror="this.style.display='none'"></div>`).join('');
+    const slides=imgs.map(src=>`<div class="det-carousel-slide"><img src="${escAttr(cdnImg(src,1000))}" alt="${escAttr(p.name)}" loading="lazy" onerror="this.style.display='none'"></div>`).join('');
     const dots=imgs.map((_,i)=>`<button class="car-dot${i===0?' on':''}" onclick="carGo('detCar',${i})"></button>`).join('');
     h+=`<div class="det-carousel" id="detCar" data-idx="0">
       <div class="det-carousel-track" id="detCarTrack">${slides}</div>
@@ -910,7 +910,7 @@ function openDet(id){
   if(suggs.length>0){
     h+=`<div class="sugg-ttl">✦ Você também pode gostar</div><div class="sugg-grid">`;
     suggs.forEach(s=>{const si=s.images&&s.images[0]||s.image||'';h+=`<div class="sugg-card" onclick="openDet('${escArg(s.id)}')">
-      ${si?`<img src="${escAttr(cdnImg(si,300))}" alt="${escAttr(s.name)}">`:'<div class="sugg-ph">🎀</div>'}
+      ${si?`<img src="${escAttr(cdnImg(si,300))}" alt="${escAttr(s.name)}" loading="lazy">`:'<div class="sugg-ph">🎀</div>'}
       <div class="sugg-info"><div class="sugg-name">${escAttr(s.name)}</div><div class="sugg-price">R$ ${fmt(s.price)}</div></div>
     </div>`;});
     h+='</div>';
@@ -936,7 +936,7 @@ function renderCart(){
   let h='<ul class="cart-list">';
   cart.forEach((item,idx)=>{
     h+=`<li class="ci">
-      ${item.image?`<img src="${escAttr(cdnImg(item.image,150))}" alt="">`:'<div class="ci-ph">🎀</div>'}
+      ${item.image?`<img src="${escAttr(cdnImg(item.image,150))}" alt="" loading="lazy">`:'<div class="ci-ph">🎀</div>'}
       <div class="ci-info"><div class="ci-name">${escAttr(item.name)}</div><div class="ci-price">R$ ${fmt(item.price)} un.</div></div>
       <div class="ci-qty"><button onclick="chQty(${idx},-1)">−</button><span>${item.qty}</span><button onclick="chQty(${idx},1)">+</button></div>
       <button class="ci-rm" onclick="rmCart(${idx})">✕</button>
