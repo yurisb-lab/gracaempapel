@@ -345,21 +345,27 @@ header{
 /* ══ CATEGORY HOME ══ */
 /* Os atalhos de categoria são medalhões redondos, não cartões de produto:
    quem chega na home precisa distinguir "para onde ir" de "o que comprar". */
-.cat-home-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.35rem 0.7rem;}
-@media(min-width:520px){.cat-home-grid{grid-template-columns:repeat(3,1fr);gap:1.6rem 0.9rem;}}
-@media(min-width:880px){.cat-home-grid{grid-template-columns:repeat(4,1fr);}}
+/* Colunas fluidas: cabem 4 medalhões na maioria dos celulares e 3 nos mais
+   estreitos, sem breakpoint fixo brigando com a largura real do aparelho. */
+.cat-home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:1.05rem 0.45rem;}
+@media(min-width:520px){.cat-home-grid{grid-template-columns:repeat(4,1fr);gap:1.5rem 0.9rem;}}
 /* Sem cartão atrás: o medalhão fica solto sobre o fundo creme. */
+/* Grade de 3 faixas (medalhão / nome / contagem) com o nome elástico: assim as
+   contagens de uma mesma linha ficam alinhadas mesmo quando um nome ocupa
+   três linhas e os outros uma. */
 .cat-tile{
-  display:flex;flex-direction:column;align-items:center;
-  padding:0.5rem 0.35rem 0.7rem;
+  display:grid;grid-template-rows:auto 1fr auto;justify-items:center;
+  padding:0.2rem 0.1rem 0.4rem;min-width:0;
   background:none;border:none;
   font-family:'Cormorant Garamond',serif;color:var(--ink);
   cursor:pointer;text-align:center;
   animation:catTileIn 0.45s ease both;
 }
 .cat-tile:focus-visible{outline:2px solid var(--blue-dark);outline-offset:4px;border-radius:16px;}
+/* Largura fluida: sem isto o medalhão fixo impedia a coluna de encolher e a
+   grade estourava a tela no celular. */
 .cat-tile-medal{
-  position:relative;width:104px;height:104px;max-width:88%;aspect-ratio:1;
+  position:relative;width:100%;max-width:104px;height:auto;aspect-ratio:1;
   border-radius:50%;overflow:hidden;flex-shrink:0;
   background:linear-gradient(135deg,var(--blue-pale),var(--pink-pale));
   border:3px solid var(--warm);
@@ -371,13 +377,24 @@ header{
 .cat-tile:hover .cat-tile-medal{transform:translateY(-4px);box-shadow:0 0 0 2px var(--pink-dark),0 12px 24px rgba(201,51,104,0.24);}
 .cat-tile:active .cat-tile-medal{transform:translateY(-1px);}
 .cat-tile:hover .cat-tile-medal img{transform:scale(1.08);}
-.cat-tile-emoji{font-size:2.4rem;line-height:1;}
-.cat-tile-name{margin-top:0.6rem;font-size:1.06rem;font-weight:600;line-height:1.25;}
+.cat-tile-emoji{font-size:1.9rem;line-height:1;}
+/* Duas linhas reservadas: com 4 por linha os nomes longos quebram, e sem a
+   reserva a contagem de cada medalhão parava numa altura diferente. */
+.cat-tile-name{
+  margin-top:0.5rem;font-size:0.82rem;font-weight:600;line-height:1.22;
+  display:flex;align-items:center;justify-content:center;
+  overflow-wrap:break-word;hyphens:auto;
+}
 .cat-tile-count{
-  margin-top:0.28rem;
-  font-family:'DM Sans',sans-serif;font-size:0.56rem;
-  letter-spacing:0.12em;text-transform:uppercase;
+  margin-top:0.15rem;
+  font-family:'DM Sans',sans-serif;font-size:0.53rem;
+  letter-spacing:0.1em;text-transform:uppercase;
   color:var(--gold-deep);
+}
+@media(min-width:520px){
+  .cat-tile-emoji{font-size:2.3rem;}
+  .cat-tile-name{font-size:1.02rem;margin-top:0.6rem;}
+  .cat-tile-count{font-size:0.56rem;margin-top:0.2rem;}
 }
 /* atalho "Ver Todos": mesma família, sotaque azul */
 .cat-tile-all .cat-tile-medal{background:linear-gradient(135deg,#EDF7FC,var(--pink-pale));}
@@ -570,7 +587,7 @@ footer{
   .hero{padding:1.8rem 0.9rem 2rem;}
   .hero-frame{padding:1.25rem 1rem 1.15rem;border-radius:22px;}
   .hero-sub{font-size:0.64rem;letter-spacing:0.13em;}
-  .cat-tile-name{font-size:0.98rem;}
+  #sec-categorias{padding-left:0.6rem;padding-right:0.6rem;}
   .logo-name{font-size:1.38rem;}
   .logo-sub{font-size:0.56rem;}
   .footer-links{gap:1.3rem;}
