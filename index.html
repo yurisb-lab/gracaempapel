@@ -91,6 +91,14 @@
 /* ── PAGE LOAD FADE (blur → clear) ── */
 body{filter:blur(8px);opacity:0;transition:filter 0.7s ease, opacity 0.6s ease;}
 body.loaded{filter:blur(0px);opacity:1;}
+/* Terminada a animação, o filtro precisa virar `none` de verdade: qualquer
+   filter diferente de none faz do body o bloco contêiner dos filhos
+   position:fixed, e aí os overlays passam a cobrir a página inteira em vez
+   da viewport — o modal ficava centralizado no documento, lá embaixo. */
+body.blur-off{filter:none;transition:opacity 0.6s ease;}
+/* Trava a rolagem do fundo enquanto um modal está aberto. O `top` negativo
+   é definido no JS para a página não pular para o começo. */
+body.ov-open{position:fixed;left:0;right:0;width:100%;overflow:hidden;}
 /* Paleta compartilhada com a Central da Graça — mesmos tokens, mesmos valores.
    Os tons foram escurecidos até passarem no contraste mínimo do WCAG AA
    sobre o fundo creme: em tela clara a versão anterior sumia. Quem é fundo
@@ -369,9 +377,11 @@ footer{
 .wa-float:active{transform:scale(0.96);}
 
 /* ══ OVERLAYS ══ */
-.overlay{display:none;position:fixed;inset:0;background:rgba(45,37,32,0.65);z-index:200;align-items:center;justify-content:center;padding:1rem;overflow-y:auto;backdrop-filter:blur(3px);}
+.overlay{display:none;position:fixed;inset:0;background:rgba(45,37,32,0.65);z-index:200;align-items:center;justify-content:center;padding:1rem;overflow-y:auto;overscroll-behavior:contain;backdrop-filter:blur(3px);}
 .overlay.open{display:flex;}
-.modal{background:var(--warm);border-radius:10px;width:100%;max-width:500px;margin:0 auto;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,0.25);animation:slideUp 0.25s ease;}
+/* margin:auto centraliza mesmo quando o modal é mais alto que a tela e o
+   overlay precisa rolar (align-items:center sozinho corta o topo) */
+.modal{background:var(--warm);border-radius:10px;width:100%;max-width:500px;margin:auto;max-height:90vh;max-height:90dvh;overflow-y:auto;overscroll-behavior:contain;box-shadow:0 24px 80px rgba(0,0,0,0.25);animation:slideUp 0.25s ease;}
 .modal-wide{max-width:640px;}
 @keyframes slideUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
 .mhdr{display:flex;align-items:center;justify-content:space-between;padding:0.9rem 1.2rem;border-bottom:1px solid var(--border);}
@@ -1039,7 +1049,12 @@ function openOv(id){
   const ov = document.getElementById(id);
   if(!ov) return;
 
+  // Garante que o body não tem filter ativo (senão o overlay fixed se
+  // ancora no documento e o modal aparece no meio da página, não da tela)
+  document.body.classList.add('blur-off');
+
   ov.classList.add('open');
+  lockScroll();
 
   // Reseta a rolagem do overlay
   ov.scrollTop = 0;
@@ -1056,17 +1071,56 @@ function closeOv(id){
   if(!ov) return;
 
   ov.classList.remove('open');
+  syncScrollLock();
+}
+
+// ── TRAVA DE ROLAGEM DO FUNDO ──
+let _scrollLockY = 0;
+function lockScroll(){
+  if(document.body.classList.contains('ov-open'))return;
+  _scrollLockY = window.scrollY || window.pageYOffset || 0;
+  document.body.style.top = `-${_scrollLockY}px`;
+  document.body.classList.add('ov-open');
+}
+function unlockScroll(){
+  if(!document.body.classList.contains('ov-open'))return;
+  document.body.classList.remove('ov-open');
+  document.body.style.top = '';
+  // sem animação: o html usa scroll-behavior:smooth e a volta ficaria visível
+  const html = document.documentElement;
+  const prev = html.style.scrollBehavior;
+  html.style.scrollBehavior = 'auto';
+  window.scrollTo(0, _scrollLockY);
+  html.style.scrollBehavior = prev;
+}
+// Mantém a trava só enquanto houver algum modal ou o menu aberto
+function syncScrollLock(){
+  const drawer = document.getElementById('drawer');
+  const anyOpen = !!document.querySelector('.overlay.open') || (drawer && drawer.classList.contains('open'));
+  if(anyOpen) lockScroll(); else unlockScroll();
 }
 
 document.querySelectorAll('.overlay').forEach(o=>{
   o.addEventListener('click',e=>{
     if(e.target===o){
       o.classList.remove('open');
+      syncScrollLock();
     }
   });
 });
+
+// ESC fecha o overlay que estiver aberto
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape')return;
+  const open=document.querySelector('.overlay.open');
+  if(open){open.classList.remove('open');syncScrollLock();}
+});
 // ── SPLASH DISMISS ──
-function dismissSplash(){document.body.classList.add('loaded');}
+function dismissSplash(){
+  document.body.classList.add('loaded');
+  // Assim que o blur termina, remove o filter de vez (ver comentário no CSS)
+  setTimeout(()=>document.body.classList.add('blur-off'),800);
+}
 let _splashDone=false;
 function markSplashDone(){
   if(_splashDone)return;
@@ -1196,15 +1250,16 @@ setTimeout(()=>{
 <script>
 // ══ DRAWER ══
 function openDrawer(){
+  document.body.classList.add('blur-off');
   renderDrawer();
   document.getElementById('drawer').classList.add('open');
   document.getElementById('drawerOverlay').classList.add('open');
-  document.body.style.overflow='hidden';
+  lockScroll();
 }
 function closeDrawer(){
   document.getElementById('drawer').classList.remove('open');
   document.getElementById('drawerOverlay').classList.remove('open');
-  document.body.style.overflow='';
+  syncScrollLock();
 }
 
 function renderDrawer(){
